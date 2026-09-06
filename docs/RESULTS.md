@@ -1,35 +1,72 @@
 # Results
 
-## One half, five corners
+## Two halves, twelve corners
 
-Match 118577, second half — 48:19 of fixed panoramic footage from a Japanese
-university game. Corner ground truth comes from the commercial match event feed
-shipped in the dataset's `raw/` folder (`cornerKick`, 5 in this half), which is
-annotated by people from the video and owes nothing to the player tracking the
-detector uses.
+Ground truth is the `cornerKick` label in the commercial match event feed
+shipped in the dataset's `raw/` folder. It is annotated by people from the
+video and owes nothing to the player tracking the detector uses.
 
-Detector: `setpiece corners`, player positions only, no ball, no video.
+| Half | Corners | Candidates | Recall | Precision | Offset |
+|---|---|---|---|---|---|
+| 118577 2nd (48:19) | 5 | 6 | **1.00** | **0.83** | +1.0 s |
+| 128058 2nd (48:20) | 7 | 7 | **1.00** | **1.00** | −0.9 s |
 
-| | |
+Both from the dataset's ground-truth player positions, at ±15 s, with the same
+settings — the second half was run after the first was written, with nothing
+adjusted. Reviewing the twelve candidates takes about 6 minutes against 96
+minutes of football.
+
+Twelve corners across two halves of two matches is a small number and the
+tolerance matters (below). It is enough to say the geometry works and not
+enough to put a figure on how well.
+
+## From this project's own perception
+
+The run above uses positions the dataset provides. The question that decides
+whether any of this works on unannotated footage is what happens when the
+positions come from here instead: RF-DETR tiled over the panorama, foot points
+mapped to the pitch by a polynomial fitted against known positions
+(`docs/DECISIONS.md`, D9).
+
+On 118577's second half, mapping error against the annotated positions is
+**1.74 m median, 2.71 m RMSE**.
+
+| Corner radius | People in box | Candidates | Recall | Precision |
+|---|---|---|---|---|
+| 3 m (the setting used above) | 10 | 0 | 0.00 | — |
+| 5 m | 10 | 6 | 0.60 | 0.50 |
+| **6 m** | **12** | **7** | **1.00** | **0.71** |
+| 8 m | 14 | 6 | 1.00 | 0.83 |
+
+**The heuristic does not survive perception unchanged.** At the 3 m radius that
+works perfectly on the provided positions, the pipeline built here finds
+nothing at all: a 1.7 m median error, plus a detector that puts the corner
+taker a metre or two off the flag, is enough to empty the test. Widening the
+radius to 6 m recovers every corner at the cost of one extra candidate.
+
+**These settings were chosen by looking at this half's score, so 1.00 and 0.71
+are optimistic.** The honest version of this number needs the same settings run
+on a half they were not chosen on, which is what the next section will hold.
+
+## Detection recall collapses where it matters
+
+Measured on the five corner frames of 118577's second half, against the 22
+people the annotation lists:
+
+| Tiling | People found |
 |---|---|
-| Corners in the half | 5 |
-| Candidates produced | 6 |
-| **Recall at ±15 s** | **1.00** (5 found, 0 missed) |
-| **Precision at ±15 s** | **0.83** (1 spurious) |
-| Median timing offset | **+1.0 s** |
-| Review load | 3 minutes of clips against 48 minutes of match — **6%** |
+| 4 x 1 | 14, 14, 14, 14, 14 |
+| 8 x 2 | 31, 30, 25, 23, 20 |
+| 8 x 2, larger model | 37, 39, 30, 33, 28 |
 
-Reproduce:
+With a 4 x 1 grid the corner taker was not among them in any of the five. A
+corner is the most crowded moment in a match, players overlap, and the
+detector fails hardest exactly where the tool is looking. Counts above 22 are
+people off the pitch — substitutes, staff, another match in the background —
+which the pitch-position filter removes.
 
-```bash
-setpiece import-gsr data/soccertrack-v2/gsr/118577/118577_2nd.json data/cache/118577_2nd.csv.gz
-setpiece corners data/cache/118577_2nd.csv.gz --output data/cache/candidates.csv
-setpiece evaluate data/cache/truth.csv data/cache/candidates.csv --video <the half>
-```
-
-**Five corners is not a result to generalise from.** It is one half of one match.
-The numbers below are reported so that the next half can be compared against
-them, not because they establish anything yet.
+The mapping error improved from 2.54 m to 1.74 m median on the finer grid,
+without any change to the fitting code: more detections, better correspondences.
 
 ## Where the timing is, and is not, good
 
@@ -88,10 +125,14 @@ this output loses nothing — but as a count of candidates it is a genuine extra
 
 ## What has not been measured
 
-- **Anything from this project's own perception.** These candidates come from
-  the dataset's ground-truth player positions. The loss from using detections
-  produced here instead is the next thing to measure, and it is the number that
-  decides whether the tool works on footage with no annotations — which is every
-  real use.
-- **More than one half.** Six more halves are available for development.
+- **Own perception on a half its settings were not chosen on.** 128058's second
+  half is downloading and detecting as this is written; until that number
+  exists, treat the 1.00 / 0.71 above as the best case rather than the result.
+- **Any match outside the two development halves.** The dataset's own test
+  split (128057, 132831) has not been touched and should stay untouched until
+  the settings stop moving.
 - **Other set pieces.** Only corners are implemented.
+- **Footage from a camera nobody annotated.** The mapping from pixels to metres
+  is fitted against known positions, so every number here assumes the geometry
+  is solved. On a phone on a tripod at a university match it would not be, and
+  that is the gap between this measurement and a usable tool.

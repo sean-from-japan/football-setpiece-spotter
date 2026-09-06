@@ -140,6 +140,25 @@ critical path: for this dataset it is provided, and estimating it is only needed
 for footage from a camera nobody calibrated — which is the deployment case, not
 the measurement case.
 
+## D9. The pitch mapping is fitted, and its cost is stated
+
+The release's own homography does not take pitch metres to the pixels of the
+distributed video in any convention that works, and a single homography would
+be wrong regardless: the panorama is stitched from several cameras, so no one
+projective transform describes it. `setpiece.pitchmap` fits a low-order
+polynomial instead, from the annotated player positions, alternating between
+pairing points and refitting because which detection is which player is not
+known.
+
+Measured on 118577's second half: **1.74 m median, 2.71 m RMSE** against the
+annotated positions.
+
+This is a deliberate loan from the ground truth, and it is what makes the
+perception number meaningful: it isolates detection and tracking with the
+geometry held correct. It also means no number in `docs/RESULTS.md` transfers
+to a camera nobody has annotated. Calibrating an unknown camera is a separate
+problem and is not solved here.
+
 ## Open
 
 - **Access.** SoccerTrack v2 is gated on Hugging Face (automatic approval, but
