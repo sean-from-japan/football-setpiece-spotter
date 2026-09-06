@@ -73,6 +73,26 @@ def fit(image_points, pitch_points, degree=3, scale=(4096.0, 1080.0)):
     return PitchMap(coefficients, degree, scale)
 
 
+#: How far outside the pitch a detection may land and still be believed, in
+#: metres. Half a pitch width; anything further is not a player standing off
+#: the touchline, it is the polynomial extrapolating.
+MARGIN = 12.0
+
+
+def on_pitch(points, margin=MARGIN, half_length=52.5, half_width=34.0):
+    """Boolean mask of the points that could plausibly be a person on a pitch.
+
+    A polynomial fitted inside the pitch says nothing sensible outside it, and
+    it fails loudly: mapping a detection high in the frame — a spectator, a
+    tree, a player on the pitch behind — produced positions hundreds of metres
+    away in the first run on real footage. Those have to be dropped before they
+    reach anything that counts people.
+    """
+    points = np.asarray(points, float).reshape(-1, 2)
+    return ((np.abs(points[:, 0]) <= half_length + margin)
+            & (np.abs(points[:, 1]) <= half_width + margin))
+
+
 def error(model, image_points, pitch_points):
     """Return (RMSE, median) of the fit in metres."""
     predicted = model(image_points)

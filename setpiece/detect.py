@@ -81,7 +81,7 @@ def foot_point(box):
     return ((box[0] + box[2]) / 2.0, box[3])
 
 
-def detect_video(path, destination, sample_fps=4.0, columns=4, rows=1,
+def detect_video(path, destination, sample_fps=4.0, columns=8, rows=2,
                  overlap=0.08, threshold=0.4, model=None, limit=None,
                  progress=None):
     """Run the detector over a video and write one row per detection."""

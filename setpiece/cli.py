@@ -114,14 +114,20 @@ def _map_detections(args):
     with gzip.open(args.destination, "wt", newline="", encoding="utf-8") as out:
         writer = csv.writer(out)
         writer.writerow(soccertrack.COLUMNS)
+        dropped = 0
         for frame in sorted(detections):
             boxes = detections[frame]
             if not boxes:
                 continue
             placed = model([detect.foot_point(box) for box in boxes])
-            for (x, y) in placed:
+            keep = pitchmap.on_pitch(placed, args.margin)
+            dropped += int((~keep).sum())
+            for (x, y) in placed[keep]:
                 writer.writerow([frame, -1, "", "", round(float(x), 3), round(float(y), 3)])
                 written += 1
+        if dropped:
+            print(f"dropped {dropped:,} detections that mapped off the pitch",
+                  file=sys.stderr)
     print(f"{written:,} positions -> {args.destination}")
     return 0
 
@@ -187,6 +193,8 @@ def build_parser():
     mapper.add_argument("--degree", type=int, default=3)
     mapper.add_argument("--fit-frames", type=int, default=60,
                         help="how many frames to fit on (default: 60)")
+    mapper.add_argument("--margin", type=float, default=12.0,
+                        help="metres outside the pitch a detection may still land")
     mapper.set_defaults(handler=_map_detections)
 
     return parser

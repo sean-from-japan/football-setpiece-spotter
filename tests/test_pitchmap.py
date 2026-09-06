@@ -85,3 +85,17 @@ class AlignmentTest(FitTest):
     def test_no_frames_is_refused(self):
         with self.assertRaises(pitchmap.FitError):
             pitchmap.fit_by_alignment([])
+
+
+@unittest.skipIf(np is None, "numpy is not installed")
+class OnPitchTest(unittest.TestCase):
+    def test_keeps_the_pitch_and_a_margin_around_it(self):
+        kept = pitchmap.on_pitch([(0, 0), (52.5, 34.0), (60.0, 40.0)])
+        self.assertTrue(kept.all())
+
+    def test_drops_what_the_polynomial_invented(self):
+        kept = pitchmap.on_pitch([(0, -649.4), (-83.8, 0), (0, 0)])
+        self.assertEqual(kept.tolist(), [False, False, True])
+
+    def test_the_margin_is_adjustable(self):
+        self.assertFalse(pitchmap.on_pitch([(0, 40.0)], margin=2.0)[0])
