@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+.venv/
+build/
+dist/
+*.egg-info/
+
+# Footage, extracted frames, model weights and analysis output never belong in
+# the repository. See docs/DATA_POLICY.md.
+data/
+models/
+*.mp4
+*.mov
+*.mkv
+*.pt
+*.pth
+*.onnx

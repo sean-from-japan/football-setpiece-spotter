@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "football-setpiece-spotter"
+version = "0.1.0"
+description = "Find set-piece candidates in fixed wide-angle amateur football footage, and measure how many it misses"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.9"
+dependencies = []
+keywords = ["football", "soccer", "video", "computer-vision", "action-spotting"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Image Recognition",
+    "Intended Audience :: Science/Research",
+]
+
+[project.optional-dependencies]
+# The detector is the only part that needs a model runtime; everything through
+# the evaluator runs on the standard library plus ffmpeg. See docs/DECISIONS.md.
+detect = ["torch>=2.2", "rfdetr>=1.10", "supervision", "opencv-python", "numpy"]
+
+[project.scripts]
+setpiece = "setpiece.cli:main"
+
+[tool.setuptools]
+packages = ["setpiece"]
