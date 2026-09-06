@@ -86,6 +86,46 @@ def _corners(args):
     return 0
 
 
+def _map_detections(args):
+    """Turn a detection cache into the position cache the spotter reads."""
+    import csv
+    import gzip
+
+    from . import detect, pitchmap
+
+    detections = detect.load_detections(args.detections)
+    reference = soccertrack.load_positions(args.reference)
+
+    # Frames used for the fit are spread across the half rather than taken from
+    # its start: a camera does not move, but the light and the crowding do.
+    shared = sorted(set(detections) & set(reference))
+    if not shared:
+        raise ValueError("no frame appears in both the detections and the reference")
+    chosen = shared[:: max(1, len(shared) // args.fit_frames)]
+    pairs = [([detect.foot_point(box) for box in detections[frame]],
+              [(row[3], row[4]) for row in reference[frame]])
+             for frame in chosen]
+    model, history = pitchmap.fit_by_alignment(pairs, degree=args.degree)
+    last = history[-1]
+    print(f"fitted on {len(chosen)} frames, {last['pairs']} pairs: "
+          f"RMSE {last['rmse']:.2f} m, median {last['median']:.2f} m", file=sys.stderr)
+
+    written = 0
+    with gzip.open(args.destination, "wt", newline="", encoding="utf-8") as out:
+        writer = csv.writer(out)
+        writer.writerow(soccertrack.COLUMNS)
+        for frame in sorted(detections):
+            boxes = detections[frame]
+            if not boxes:
+                continue
+            placed = model([detect.foot_point(box) for box in boxes])
+            for (x, y) in placed:
+                writer.writerow([frame, -1, "", "", round(float(x), 3), round(float(y), 3)])
+                written += 1
+    print(f"{written:,} positions -> {args.destination}")
+    return 0
+
+
 def build_parser():
     parser = argparse.ArgumentParser(
         prog="setpiece",
@@ -137,6 +177,17 @@ def build_parser():
     spotter.add_argument("--scan-fps", type=float, default=corners.Settings.scan_fps)
     spotter.add_argument("--merge-gap", type=float, default=corners.Settings.merge_gap)
     spotter.set_defaults(handler=_corners)
+
+    mapper = commands.add_parser(
+        "map-detections",
+        help="place detections on the pitch, fitting the mapping against known positions")
+    mapper.add_argument("detections", help="cache written by the detector")
+    mapper.add_argument("reference", help="position cache from import-gsr, used to fit")
+    mapper.add_argument("destination", help="position cache to write, ending .csv.gz")
+    mapper.add_argument("--degree", type=int, default=3)
+    mapper.add_argument("--fit-frames", type=int, default=60,
+                        help="how many frames to fit on (default: 60)")
+    mapper.set_defaults(handler=_map_detections)
 
     return parser
 

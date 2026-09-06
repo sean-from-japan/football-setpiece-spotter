@@ -125,3 +125,83 @@ class GameStateCommandsTest(unittest.TestCase):
             status, _, err = run("corners", paths["truth"])
             self.assertEqual(status, 2)
             self.assertIn("setpiece:", err)
+
+
+try:
+    import numpy  # noqa: F401
+    import scipy  # noqa: F401
+    HAS_FIT = True
+except ImportError:  # pragma: no cover
+    HAS_FIT = False
+
+
+@unittest.skipUnless(HAS_FIT, "numpy and scipy are needed to fit the mapping")
+class MapDetectionsTest(unittest.TestCase):
+    """Detections in pixels become positions in metres, with no correspondence given."""
+
+    @staticmethod
+    def to_pitch(x, y):
+        u, v = x / 4096 * 2 - 1, y / 1080 * 2 - 1
+        return 52.5 * u + 5.0 * u * v, 34.0 * v
+
+    def test_places_detections_on_the_pitch(self):
+        import csv
+        import gzip
+        import random
+
+        from setpiece import detect, soccertrack
+
+        rng = random.Random(11)
+        with tempfile.TemporaryDirectory() as folder:
+            detections = os.path.join(folder, "boxes.csv")
+            reference = os.path.join(folder, "reference.csv.gz")
+            with open(detections, "w", newline="", encoding="utf-8") as box_file, \
+                    gzip.open(reference, "wt", newline="", encoding="utf-8") as ref_file:
+                boxes = csv.writer(box_file)
+                boxes.writerow(detect.COLUMNS)
+                positions = csv.writer(ref_file)
+                positions.writerow(soccertrack.COLUMNS)
+                for frame in range(1, 61):
+                    for _ in range(20):
+                        x = rng.uniform(300, 3800)
+                        y = rng.uniform(300, 900)
+                        boxes.writerow([frame, round(x - 10, 1), round(y - 40, 1),
+                                        round(x + 10, 1), round(y, 1), 0.9])
+                        px, py = self.to_pitch(x, y)
+                        positions.writerow([frame, 1, "left", "player",
+                                            round(px, 3), round(py, 3)])
+
+            out = os.path.join(folder, "mapped.csv.gz")
+            status, printed, err = run("map-detections", detections, reference, out,
+                                       "--fit-frames", "30")
+            self.assertEqual(status, 0)
+            self.assertIn("RMSE", err)
+            self.assertIn("positions ->", printed)
+
+            mapped = soccertrack.load_positions(out)
+            self.assertEqual(len(mapped), 60)
+            xs = [row[3] for rows in mapped.values() for row in rows]
+            self.assertGreater(max(xs), 30)
+            self.assertLess(min(xs), -30)
+
+    def test_detections_and_reference_that_share_no_frame_are_refused(self):
+        import csv
+        import gzip
+
+        from setpiece import detect, soccertrack
+
+        with tempfile.TemporaryDirectory() as folder:
+            detections = os.path.join(folder, "boxes.csv")
+            with open(detections, "w", newline="", encoding="utf-8") as handle:
+                writer = csv.writer(handle)
+                writer.writerow(detect.COLUMNS)
+                writer.writerow([1, 0, 0, 10, 10, 0.9])
+            reference = os.path.join(folder, "reference.csv.gz")
+            with gzip.open(reference, "wt", newline="", encoding="utf-8") as handle:
+                writer = csv.writer(handle)
+                writer.writerow(soccertrack.COLUMNS)
+                writer.writerow([99, 1, "left", "player", 0.0, 0.0])
+            status, _, err = run("map-detections", detections, reference,
+                                 os.path.join(folder, "out.csv.gz"))
+            self.assertEqual(status, 2)
+            self.assertIn("no frame appears in both", err)
