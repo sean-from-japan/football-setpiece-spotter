@@ -3,17 +3,21 @@
 Finds set-piece candidates — corners first — in fixed wide-angle amateur
 football footage, and measures how many it misses.
 
-**Status: one half measured.** On the second half of one university match — 48
-minutes, five corners — the spotter finds **all five**, produces **six**
-candidates, and is a **median one second** off the restart. Reviewing its output
-takes 3 minutes against 48 minutes of match. Five corners is one half of one
-match and generalises to nothing; the numbers are in
-[docs/RESULTS.md](docs/RESULTS.md) with what they do and do not support.
+**Status: it works on the dataset's tracking and does not survive our own.**
 
-These candidates come from the dataset's ground-truth player positions, not from
-this project's own perception. Measuring what is lost when the positions come
-from a detector instead is the next step, and it is the number that decides
-whether any of this works on footage nobody has annotated.
+Across two halves of two university matches — 96 minutes, twelve corners — the
+spotter finds **all twelve** from the dataset's ground-truth player positions,
+at a precision of 0.83 and 1.00, timed within a second of the restart.
+
+Run on positions produced here instead — RF-DETR tiled over the panorama,
+mapped to the pitch — it reaches 1.00 recall on the half its settings were
+chosen on and **0.43 recall, 0.25 precision** on a half it had not seen. The
+crowd in the penalty area survives perception; the lone player standing on the
+corner flag does not, and the heuristic leans its whole weight on that one
+person.
+
+The numbers, the failure measured corner by corner, and what the design should
+change are in [docs/RESULTS.md](docs/RESULTS.md).
 
 ## Why another football-video repository
 

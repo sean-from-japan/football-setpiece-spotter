@@ -45,8 +45,58 @@ taker a metre or two off the flag, is enough to empty the test. Widening the
 radius to 6 m recovers every corner at the cost of one extra candidate.
 
 **These settings were chosen by looking at this half's score, so 1.00 and 0.71
-are optimistic.** The honest version of this number needs the same settings run
-on a half they were not chosen on, which is what the next section will hold.
+are optimistic.** They were then run unchanged on a half they had never seen.
+
+## The same settings on an unseen half: it does not transfer
+
+128058's second half, seven corners, radius 6 m and twelve people in the box,
+nothing adjusted:
+
+| | 118577 (tuned on) | 128058 (unseen) |
+|---|---|---|
+| Recall | 1.00 | **0.43** (3 of 7) |
+| Precision | 0.71 | **0.25** (9 spurious) |
+| Candidates | 7 | 12 |
+
+Sweeping the settings on 128058 does not rescue it either — the best recall any
+combination reaches is 0.71, at a precision of 0.31. So the earlier 1.00 / 0.71
+was five corners' worth of overfitting, and this is the number that counts.
+
+### Why it fails, measured at the seven corner moments
+
+For each labelled corner, the distance from the nearest tracked person to the
+corner flag, and the number of people inside that penalty area:
+
+| Corner | Own: nearest to flag | Own: in box | Annotated: nearest | Annotated: in box |
+|---|---|---|---|---|
+| 05:33 | 19.3 m | 10 | 4.3 m | 16 |
+| 21:26 | 22.4 m | 15 | 4.3 m | 15 |
+| 28:36 | 4.9 m | 10 | 5.4 m | 15 |
+| 29:26 | 5.5 m | 15 | 4.3 m | 16 |
+| 31:48 | 7.1 m | 10 | 2.2 m | 19 |
+| 33:27 | 7.5 m | 12 | 2.2 m | 18 |
+| 34:17 | 7.1 m | 12 | 3.1 m | 18 |
+
+**The crowd survives perception and the taker does not.** People in the box come
+out at 10 to 15 against the annotation's 15 to 19 — enough for any sensible
+threshold. The corner taker is a different matter: twice they are not found at
+all (19 m and 22 m to the nearest person, meaning the nearest person is someone
+else entirely), and where they are found they land 5 to 7.5 m from the flag
+against the annotation's 2 to 5.
+
+That is the specific thing that breaks. A lone player at the edge of a stitched
+panorama, at the extreme of the lens and with nothing beside them to help, is
+the hardest detection on the pitch, and the heuristic leans its whole weight on
+exactly that one person.
+
+### What this says about the design
+
+The next version should not depend on locating one player. The signals that did
+survive are the ones about the whole configuration: almost everyone in one
+penalty area, both teams present, play stopped. A corner detector built on the
+crowd, using the corner region only as a weak prior rather than a requirement,
+is the thing to try - and it should be tried on 128058 and checked on a third
+half, not the other way round.
 
 ## Detection recall collapses where it matters
 
@@ -125,9 +175,9 @@ this output loses nothing — but as a count of candidates it is a genuine extra
 
 ## What has not been measured
 
-- **Own perception on a half its settings were not chosen on.** 128058's second
-  half is downloading and detecting as this is written; until that number
-  exists, treat the 1.00 / 0.71 above as the best case rather than the result.
+- **A corner detector that does not depend on one player being found.** The
+  redesign the section above argues for has not been written, let alone
+  measured.
 - **Any match outside the two development halves.** The dataset's own test
   split (128057, 132831) has not been touched and should stay untouched until
   the settings stop moving.
