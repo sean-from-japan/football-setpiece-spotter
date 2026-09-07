@@ -19,9 +19,11 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-# The detector is the only part that needs a model runtime; everything through
-# the evaluator runs on the standard library plus ffmpeg. See docs/DECISIONS.md.
-detect = ["torch>=2.2", "rfdetr>=1.10", "supervision", "opencv-python", "numpy"]
+# The detector and the pitch mapping are the only parts that need third-party
+# packages; everything through the evaluator runs on the standard library plus
+# ffmpeg. See docs/DECISIONS.md.
+detect = ["torch>=2.2", "rfdetr>=1.10", "supervision", "opencv-python", "numpy",
+          "scipy"]
 
 [project.scripts]
 setpiece = "setpiece.cli:main"

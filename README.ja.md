@@ -53,9 +53,18 @@ candidates: 22
 
 ここまでは標準ライブラリと `ffprobe` だけで動きます。モデルもGPUもネットワークも使いません。
 
+残る2つのコマンドは、座標を読む側ではなく作る側です。この2つだけは `detect` エクストラが必要です。
+
+- `setpiece detect` — パノラマをタイルに分割してRF-DETRを走らせ、サンプリングしたフレームごとに、検出した人物を1行ずつ書き出します。タイルの分割数を引数にしているのは、それが処理速度ではなく検出器に何が見えるかを左右するからです（[docs/DECISIONS.md](docs/DECISIONS.md) のD7）。
+- `setpiece map-detections` — ピクセル単位の矩形をメートル単位の座標に変換します。既知の座標に対して変換式を当てはめ、当てはめの結果ピッチの外に出た座標は捨てます。
+
+`setpiece detect | map-detections | corners | evaluate` が全体の流れで、冒頭に書いた認識込みの数値はこの流れで出したものです。
+
 ## まだ無いもの
 
-検出器、追跡、チーム分類です。同じ教師データに対して `setpiece evaluate` で測り、認識によって失われる分を言い訳ではなく数字にします。決めたことと理由は [docs/DECISIONS.md](docs/DECISIONS.md) に書いてあります。既定の検出器をAGPLのYOLOではなくRF-DETR（Apache-2.0）にした理由もそこにあります。
+追跡とチーム分類です。検出結果はフレーム間で対応づけていないので、ツールから見えているのは同じ22人が動いている様子ではなく、その瞬間ごとの人の集まりです。ペナルティエリアにいる人数を数えるにはこれで足りますが、個人を区別する処理には足りません。
+
+どちらも、同じ教師データに対する `setpiece evaluate` の結果を伴わない形では入れません。認識によって失われる分を、言い訳ではなく数字として残すためです。決めたことと理由は [docs/DECISIONS.md](docs/DECISIONS.md) に書いてあります。既定の検出器をAGPLのYOLOではなくRF-DETR（Apache-2.0）にした理由もそこにあります。
 
 映像は決まりました。開発と評価には **SoccerTrack v2**（大学の10試合・約900分・BePro固定パノラマ4K・CC BY 4.0）を使い、プロの映像との対照には Simula の Alfheim パノラマを使います。ただしコーナーキックは同データセットの12種の事象ラベルに含まれていないので、教師データは引き続き手作業で作ります。詳細は [docs/FOOTAGE.md](docs/FOOTAGE.md) と [docs/LABELLING.md](docs/LABELLING.md) をご覧ください。
 
@@ -63,7 +72,7 @@ candidates: 22
 
 ```bash
 python -m pip install .              # 評価部分のみ
-python -m pip install '.[detect]'    # モデル実行環境を追加します（検出器の実装後）
+python -m pip install '.[detect]'    # 検出器とピッチ座標変換を追加します
 ```
 
 Python 3.9以降とFFmpeg（`brew install ffmpeg`）が必要です。

@@ -36,7 +36,7 @@ later non-open use of this code.
 RF-DETR (Roboflow) is **Apache-2.0**, code and weights, with no copyleft
 obligation.
 
-Decision: the detector is loaded behind an interface (`setpiece/detector.py`)
+Decision: the detector is loaded behind an interface (`setpiece/detect.py`)
 whose default backend is RF-DETR. An Ultralytics backend may be added as an
 opt-in extra, kept out of the default dependency set, so that installing this
 project does not pull an AGPL dependency in.
@@ -53,7 +53,10 @@ package and no compiled wheel. Tests therefore run on any Python 3.9+ with no
 network, no GPU and no model download, which is what keeps CI honest on three
 operating systems.
 
-Only `setpiece/detector.py` and the tracking layer will require torch.
+Only `setpiece/detect.py` and the tracking layer require torch, and it is
+imported inside the function that runs the model rather than at the top of
+the module. `setpiece/pitchmap.py` is the one other exception: fitting the
+mapping needs numpy and scipy, which ship with the same `detect` extra.
 
 ## D4. Coarse-to-fine, not full-frame-rate inference
 

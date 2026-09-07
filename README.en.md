@@ -80,13 +80,32 @@ candidates: 22
 Everything above runs on the standard library plus `ffprobe`. No model, no GPU,
 no network.
 
+Two more commands produce positions instead of consuming them, and these are
+the ones that need the `detect` extra:
+
+- `setpiece detect` — runs RF-DETR over the panorama in tiles and caches one
+  row per person per sampled frame. The tile grid is an argument because it
+  changes what the detector can see at all, not how fast it runs
+  ([docs/DECISIONS.md](docs/DECISIONS.md), D7).
+- `setpiece map-detections` — turns those boxes in pixels into positions in
+  metres, fitting the mapping against known positions and refusing the
+  positions the fit invents off the pitch.
+
+`setpiece detect | map-detections | corners | evaluate` is the whole pipeline,
+and it is what produced the perception numbers above.
+
 ## What does not exist yet
 
-The detector, the tracker and the team classifier — measured by
-`setpiece evaluate` against the same ground truth, so that the cost of
-perception is a number rather than an excuse. See [docs/DECISIONS.md](docs/DECISIONS.md) for what
-has already been decided and why, including why the default detector is
-RF-DETR (Apache-2.0) rather than an AGPL-licensed YOLO.
+The tracker and the team classifier. Detections are matched to nothing between
+frames, so the spotter sees a crowd rather than the same twenty-two people
+moving — which is enough for counting bodies in a penalty area and not enough
+for anything that needs identity.
+
+Neither will ship without a `setpiece evaluate` run against the same ground
+truth, so that the cost of perception stays a number rather than an excuse. See
+[docs/DECISIONS.md](docs/DECISIONS.md) for what has already been decided and
+why, including why the default detector is RF-DETR (Apache-2.0) rather than an
+AGPL-licensed YOLO.
 
 Footage is settled: **SoccerTrack v2** (10 university matches, ~900 minutes,
 fixed BePro panoramic 4K, CC BY 4.0) is the development and evaluation set, with
@@ -98,8 +117,8 @@ written by hand — see [docs/FOOTAGE.md](docs/FOOTAGE.md) and
 ## Install
 
 ```bash
-python -m pip install .        # measurement layer only
-python -m pip install '.[detect]'   # adds the model runtime, once it exists
+python -m pip install .              # measurement layer only
+python -m pip install '.[detect]'    # adds the detector and the pitch mapping
 ```
 
 Requires Python 3.9+ and FFmpeg (`brew install ffmpeg`).
