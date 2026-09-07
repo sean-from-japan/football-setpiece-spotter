@@ -3,7 +3,8 @@
 import argparse
 import sys
 
-from . import __version__, corners, evaluate, labels, soccertrack, timecode, video
+from . import (__version__, corners, detect, evaluate, labels, soccertrack,
+               timecode, video)
 
 
 def _info(args):
@@ -86,12 +87,33 @@ def _corners(args):
     return 0
 
 
+def _detect(args):
+    """Run the detector over a video and cache what it found."""
+    def progress(frame, seconds, written):
+        print(f"{timecode.format(seconds)}  {written:,} detections",
+              file=sys.stderr)
+
+    written = detect.detect_video(
+        args.video,
+        args.destination,
+        sample_fps=args.sample_fps,
+        columns=args.columns,
+        rows=args.rows,
+        overlap=args.overlap,
+        threshold=args.threshold,
+        limit=args.limit,
+        progress=progress if args.progress else None,
+    )
+    print(f"{written:,} detections -> {args.destination}")
+    return 0
+
+
 def _map_detections(args):
     """Turn a detection cache into the position cache the spotter reads."""
     import csv
     import gzip
 
-    from . import detect, pitchmap
+    from . import pitchmap
 
     detections = detect.load_detections(args.detections)
     reference = soccertrack.load_positions(args.reference)
@@ -184,6 +206,24 @@ def build_parser():
     spotter.add_argument("--merge-gap", type=float, default=corners.Settings.merge_gap)
     spotter.set_defaults(handler=_corners)
 
+    finder = commands.add_parser(
+        "detect", help="find people in a video and cache the boxes")
+    finder.add_argument("video", help="path to the panorama")
+    finder.add_argument("destination", help="detection cache to write, ending .csv")
+    finder.add_argument("--sample-fps", type=float, default=4.0,
+                        help="frames per second to run on (default: 4)")
+    finder.add_argument("--columns", type=int, default=8,
+                        help="tile columns (default: 8; see docs/RESULTS.md)")
+    finder.add_argument("--rows", type=int, default=2, help="tile rows (default: 2)")
+    finder.add_argument("--overlap", type=float, default=0.08,
+                        help="how far tiles overlap, as a fraction (default: 0.08)")
+    finder.add_argument("--threshold", type=float, default=0.4,
+                        help="minimum detection score (default: 0.4)")
+    finder.add_argument("--limit", type=int, help="stop after this many frames")
+    finder.add_argument("--progress", action="store_true",
+                        help="report progress while running")
+    finder.set_defaults(handler=_detect)
+
     mapper = commands.add_parser(
         "map-detections",
         help="place detections on the pitch, fitting the mapping against known positions")
@@ -206,7 +246,7 @@ def main(argv=None):
     try:
         return args.handler(args)
     except (video.VideoError, labels.LabelError, timecode.TimecodeError,
-            soccertrack.AnnotationError, ValueError) as error:
+            soccertrack.AnnotationError, detect.DetectorError, ValueError) as error:
         print(f"setpiece: {error}", file=sys.stderr)
         return 2
 

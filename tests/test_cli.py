@@ -127,6 +127,17 @@ class GameStateCommandsTest(unittest.TestCase):
             self.assertIn("setpiece:", err)
 
 
+
+class DetectCommandTest(unittest.TestCase):
+    """The detector needs torch, so the only thing CI can check is the failure."""
+
+    def test_a_video_that_cannot_be_read_is_an_error_not_a_traceback(self):
+        with tempfile.TemporaryDirectory() as folder:
+            status, _, err = run("detect", os.path.join(folder, "absent.mp4"),
+                                 os.path.join(folder, "boxes.csv"))
+            self.assertEqual(status, 2)
+            self.assertTrue(err.startswith("setpiece: "), err)
+
 try:
     import numpy  # noqa: F401
     import scipy  # noqa: F401
