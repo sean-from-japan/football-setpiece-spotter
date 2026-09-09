@@ -1,3 +1,5 @@
+[日本語](DECISIONS.ja.md) | English
+
 # Decisions
 
 Every entry records a choice that a reader would otherwise have to guess at, the

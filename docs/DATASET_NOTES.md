@@ -1,3 +1,5 @@
+[日本語](DATASET_NOTES.ja.md) | English
+
 # SoccerTrack v2, as actually encountered
 
 Everything here was measured against the released files, not read off the

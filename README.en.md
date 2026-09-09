@@ -114,6 +114,20 @@ one of its 12 annotated action classes, so the corner ground truth is still
 written by hand — see [docs/FOOTAGE.md](docs/FOOTAGE.md) and
 [docs/LABELLING.md](docs/LABELLING.md).
 
+## What is borrowed, and what is written here
+
+Borrowed: one pretrained object detector (RF-DETR, Apache-2.0), its runtime, a
+video decoder, and two numerical routines. Everything else is written for this
+project, and nothing up to and including the evaluator has a third-party
+dependency at all.
+
+One model is fitted here, and it is not a neural network: a 20-coefficient
+polynomial taking panorama pixels to pitch metres. No language model is
+involved anywhere.
+
+The breakdown, the dependency inventory and the diagrams are in
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
 ## Install
 
 ```bash

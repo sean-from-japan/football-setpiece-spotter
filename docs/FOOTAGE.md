@@ -1,3 +1,5 @@
+[日本語](FOOTAGE.ja.md) | English
+
 # Where the footage comes from
 
 The project needs whole matches from a **fixed wide camera**, because the claim
