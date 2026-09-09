@@ -1,3 +1,5 @@
+[日本語](DATA_POLICY.ja.md) | English
+
 # Data policy
 
 The repository contains code. It contains no match footage, no extracted

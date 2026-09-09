@@ -1,3 +1,5 @@
+[日本語](LABELLING.ja.md) | English
+
 # Labelling a match
 
 The ground truth is written before the detector, because a detector built first

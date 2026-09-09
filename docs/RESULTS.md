@@ -1,3 +1,5 @@
+[日本語](RESULTS.ja.md) | English
+
 # Results
 
 ## Two halves, twelve corners
